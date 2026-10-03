@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.pytest_cache/
+data/real/sentinel2/*.tif
+data/real/dem/*.tif
+data/real/wetlands/*.zip
+data/real/wetlands/extracted/
+data/real/processed/*.npz
+models/*.pt
+results/predictions/
