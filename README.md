@@ -22,29 +22,59 @@ The downloader searches for the most recent low-cloud Sentinel-2 scene in the co
 - creates 10-channel image patches
 - uses geographic train/validation/test splitting to reduce spatial leakage
 - trains a compact U-Net with PyTorch/CUDA
-- reports multiclass precision, recall, F1 and IoU on the held-out test data
+- evaluates multiclass semantic segmentation using accuracy, macro precision/recall/F1, mean IoU, Dice, per-class metrics and a confusion matrix
 
 ## Validated multiclass test results
 
-The validated run shows strong performance on the dominant class, moderate performance on class 3, and weak minority-class learning caused by severe class imbalance.
+### Overall metrics
 
-| Class | Support | Precision | Recall | F1 | IoU |
-|---|---:|---:|---:|---:|---:|
-| 1 | 9,439,604 | 98.30% | 99.60% | **98.95%** | 97.92% |
-| 2 | 5,034 | 15.15% | 21.75% | 17.86% | 9.81% |
-| 3 | 329,000 | 83.30% | 52.34% | **64.29%** | 47.37% |
-| 4 | 7,610 | 0.00% | 0.00% | 0.00% | 0.00% |
+| Metric | Result |
+|---|---:|
+| Pixel Accuracy | **97.89%** |
+| Macro Precision | **49.19%** |
+| Macro Recall | **43.42%** |
+| Macro F1 | **45.27%** |
+| Mean IoU | **38.77%** |
+| Macro Dice | **45.27%** |
+
+The very high overall pixel accuracy is driven by the dominant class and should **not** be interpreted as balanced multiclass performance. Macro metrics and class-level results provide a more realistic picture.
+
+### Per-class test metrics
+
+| Class | Support | Precision | Recall | F1 | IoU | Dice |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 9,439,604 | 98.30% | 99.60% | **98.95%** | 97.92% | 98.95% |
+| 2 | 5,034 | 15.15% | 21.75% | 17.86% | 9.81% | 17.86% |
+| 3 | 329,000 | 83.30% | 52.34% | **64.29%** | 47.37% | 64.29% |
+| 4 | 7,610 | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% |
+
+### Confusion matrix
+
+Rows are true classes and columns are predicted classes, ordered 1 through 4.
+
+```text
+[
+  [9401821,   4318,  33064,  401],
+  [   3415,   1095,    524,    0],
+  [ 152296,   1628, 172211, 2865],
+  [   6480,    187,    943,    0]
+]
+```
 
 ### Result interpretation
 
-- **Class 1:** excellent segmentation performance.
-- **Class 2:** weak performance, with low precision and recall.
-- **Class 3:** reasonable precision but limited recall, so many class-3 pixels are still missed.
+- **Class 1:** excellent segmentation performance and the dominant source of overall pixel accuracy.
+- **Class 2:** weak minority-class learning, with low precision and recall.
+- **Class 3:** strong precision but moderate recall, so many true class-3 pixels are missed.
 - **Class 4:** not learned in this run.
-- The main limitation is **class imbalance**: class 1 contains about **9.44 million pixels**, while classes 2 and 4 contain only about **5 thousand** and **7.6 thousand** pixels respectively.
-- Because of this imbalance, overall pixel accuracy alone would be misleading, so the repository emphasizes **per-class F1 and IoU**.
+- The central limitation is **severe class imbalance**: class 1 contains about **9.44 million pixels**, while classes 2 and 4 contain only about **5 thousand** and **7.6 thousand** pixels.
+- Because of the imbalance, the project reports **macro F1, mean IoU, Dice and per-class results** rather than relying on accuracy alone.
 
-The exact machine-readable metrics are stored in:
+### Training behaviour
+
+In the supplied epoch history for epochs 9--25, validation performance fluctuated despite generally decreasing training loss. Among those supplied epochs, epoch 22 reached the strongest macro F1 (**40.39%**) and mean IoU (**34.94%**), while epoch 25 had the lowest training loss (**0.0511**). This gap is consistent with the minority-class imbalance seen in the held-out test results.
+
+The full machine-readable test metrics are stored in:
 
 `results/test_metrics_multiclass.json`
 
@@ -106,7 +136,7 @@ python -m pytest -q
 
 ## Important scientific wording
 
-This project has been executed and evaluated on real geospatial inputs, but the current multiclass result is strongly affected by class imbalance. Do not summarize the model using overall accuracy alone; report class-level F1/IoU and the imbalance limitation.
+This project has been executed and evaluated on real geospatial inputs. The current model achieves **97.89% overall pixel accuracy**, but this number is strongly affected by class imbalance. For a balanced assessment, report the **45.27% macro F1**, **38.77% mean IoU**, per-class F1/IoU, and the fact that class 4 was not learned in this run.
 
 ## Data-source notes
 
