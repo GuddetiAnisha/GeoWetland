@@ -22,7 +22,31 @@ The downloader searches for the most recent low-cloud Sentinel-2 scene in the co
 - creates 10-channel image patches
 - uses geographic train/validation/test splitting to reduce spatial leakage
 - trains a compact U-Net with PyTorch/CUDA
-- reports accuracy, precision, recall, F1, IoU and Dice on the held-out spatial test region
+- reports multiclass precision, recall, F1 and IoU on the held-out test data
+
+## Validated multiclass test results
+
+The validated run shows strong performance on the dominant class, moderate performance on class 3, and weak minority-class learning caused by severe class imbalance.
+
+| Class | Support | Precision | Recall | F1 | IoU |
+|---|---:|---:|---:|---:|---:|
+| 1 | 9,439,604 | 98.30% | 99.60% | **98.95%** | 97.92% |
+| 2 | 5,034 | 15.15% | 21.75% | 17.86% | 9.81% |
+| 3 | 329,000 | 83.30% | 52.34% | **64.29%** | 47.37% |
+| 4 | 7,610 | 0.00% | 0.00% | 0.00% | 0.00% |
+
+### Result interpretation
+
+- **Class 1:** excellent segmentation performance.
+- **Class 2:** weak performance, with low precision and recall.
+- **Class 3:** reasonable precision but limited recall, so many class-3 pixels are still missed.
+- **Class 4:** not learned in this run.
+- The main limitation is **class imbalance**: class 1 contains about **9.44 million pixels**, while classes 2 and 4 contain only about **5 thousand** and **7.6 thousand** pixels respectively.
+- Because of this imbalance, overall pixel accuracy alone would be misleading, so the repository emphasizes **per-class F1 and IoU**.
+
+The exact machine-readable metrics are stored in:
+
+`results/test_metrics_multiclass.json`
 
 ## Default study area
 
@@ -77,12 +101,12 @@ python -m pytest -q
 - `data/real/processed/dataset.npz` aligned patch dataset
 - `models/best_unet.pt` trained model
 - `results/train_metrics.json`
-- `results/test_metrics.json`
+- `results/test_metrics_multiclass.json`
 - `results/predictions/` sample masks
 
 ## Important scientific wording
 
-After you successfully run this pipeline you can truthfully say the project uses real Sentinel-2, elevation and Swedish wetland-reference data. Do not claim a specific performance value until your own `results/test_metrics.json` has been generated.
+This project has been executed and evaluated on real geospatial inputs, but the current multiclass result is strongly affected by class imbalance. Do not summarize the model using overall accuracy alone; report class-level F1/IoU and the imbalance limitation.
 
 ## Data-source notes
 
